@@ -6,7 +6,14 @@ option go_package = "github.com/This-Is-Prince/agri-product/pb";
 
 import "search.proto";
 
-message ListProductReq {}
+message ListProductReq {
+  string id = 1;
+  string name = 2;
+  double price_gte = 4;
+  double price_lte = 5;
+  double weight_gte = 6;
+  double weight_lte = 7;
+}
 message ListProductRes { Product product = 1; }
 
 service ListProductService {

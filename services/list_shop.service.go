@@ -34,7 +34,6 @@ func (s *ListShopService) ListShop(req *pb.ListShopReq, stream pb.ListShopServic
 
 	if id := req.GetId(); id != "" {
 		oid, err := primitive.ObjectIDFromHex(id)
-		// Check for errors
 		if err != nil {
 			return status.Errorf(codes.InvalidArgument, fmt.Sprintf("Could not convert to ObjectId: %v", err))
 		}
