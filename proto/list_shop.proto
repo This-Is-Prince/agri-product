@@ -10,6 +10,8 @@ message ListShopReq {
   double long = 1;
   double lat = 2;
   double max_distance = 3;
+  string id = 4;
+  string name = 5;
 }
 message ListShopRes { Shop shop = 1; }
 
