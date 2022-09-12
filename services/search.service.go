@@ -29,8 +29,6 @@ func (s *SearchService) SearchNearbyShop(ctx context.Context, req *pb.SearchNear
 	long := req.GetLong()
 	lat := req.GetLat()
 
-	fmt.Println("hello")
-
 	shopChan, errChan := s.db.Shop().FindOne(
 		bson.M{
 			"location": bson.M{

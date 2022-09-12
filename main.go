@@ -18,6 +18,7 @@ func main() {
 	bootServer := server.NewGoApiBoot()
 
 	pb.RegisterSearchServiceServer(bootServer.GrpcServer, inject.SearchService)
+	pb.RegisterListProductServiceServer(bootServer.GrpcServer, inject.ListProductService)
 	bootServer.Start(grpcPort, webPort)
 
 }
