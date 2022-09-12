@@ -6,14 +6,14 @@ import (
 )
 
 type Inject struct {
-	Db          *db.DB
-	ShopService *services.ShopService
+	Db            *db.DB
+	SearchService *services.SearchService
 }
 
 func NewInject() *Inject {
 	inj := &Inject{}
 	inj.Db = &db.DB{}
 
-	inj.ShopService = services.NewShopService(inj.Db)
+	inj.SearchService = services.NewSearchService(inj.Db)
 	return inj
 }

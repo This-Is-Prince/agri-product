@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/This-Is-Prince/agri-product/pb";
+
+message Shop {
+  string id = 1;
+  string name = 2;
+}
+
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  double weight = 5;
+}
+
+message SearchNearbyShopReq {
+  double long = 1;
+  double lat = 2;
+}
+message SearchNearbyShopRes { Shop shop = 1; }
+
+message SearchByProductReq { string id = 1; }
+message SearchByProductRes { Product product = 1; }
+
+service SearchService {
+  rpc SearchNearbyShop(SearchNearbyShopReq) returns (SearchNearbyShopRes);
+  rpc SearchByProduct(SearchByProductReq) returns (SearchByProductRes);
+}
