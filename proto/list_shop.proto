@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/This-Is-Prince/agri-product/pb";
+
+import "search.proto";
+
+message ListShopReq {
+  double long = 1;
+  double lat = 2;
+  double max_distance = 3;
+}
+message ListShopRes { Shop shop = 1; }
+
+service ListShopService {
+  rpc ListShop(ListShopReq) returns (stream ListShopRes);
+}

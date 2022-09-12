@@ -19,6 +19,7 @@ func main() {
 
 	pb.RegisterSearchServiceServer(bootServer.GrpcServer, inject.SearchService)
 	pb.RegisterListProductServiceServer(bootServer.GrpcServer, inject.ListProductService)
+	pb.RegisterListShopServiceServer(bootServer.GrpcServer, inject.ListShopService)
 	bootServer.Start(grpcPort, webPort)
 
 }

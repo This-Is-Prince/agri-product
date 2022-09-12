@@ -9,6 +9,7 @@ type Inject struct {
 	Db                 *db.DB
 	SearchService      *services.SearchService
 	ListProductService *services.ListProductService
+	ListShopService    *services.ListShopService
 }
 
 func NewInject() *Inject {
@@ -17,5 +18,6 @@ func NewInject() *Inject {
 
 	inj.SearchService = services.NewSearchService(inj.Db)
 	inj.ListProductService = services.NewListProductService(inj.Db)
+	inj.ListShopService = services.NewListShopService(inj.Db)
 	return inj
 }
