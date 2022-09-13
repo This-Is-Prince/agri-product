@@ -7,7 +7,7 @@ func (db *DB) Shop() *ShopRepository {
 	return repo
 }
 
-func (db *DB) Product() *ProductRepository {
-	repo := NewProductRepo()
+func (db *DB) ProductCatalogue() *ProductCatalogueRepository {
+	repo := NewProductCatalogueRepo()
 	return repo
 }

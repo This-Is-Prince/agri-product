@@ -23,7 +23,11 @@ message SearchNearbyShopReq {
 }
 message SearchNearbyShopRes { Shop shop = 1; }
 
-message SearchByProductReq { string id = 1; }
+message SearchByProductReq {
+  string shopId = 1;
+  string productId = 2;
+  string name = 3;
+}
 message SearchByProductRes { Product product = 1; }
 
 service SearchService {
