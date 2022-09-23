@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/This-Is-Prince/agri-product/db"
@@ -31,115 +30,63 @@ func (s *SearchService) SearchNearbyShop(ctx context.Context, req *pb.SearchNear
 	long := req.GetLong()
 	lat := req.GetLat()
 
-	shopChan, errChan := s.db.Shop().FindOne(
-		bson.M{
-			"location": bson.M{
-				"$nearSphere": bson.M{
-					"$geometry": bson.M{
-						"type": "Point", "coordinates": []float64{long, lat},
-					},
-				},
-			},
-		},
-	)
-	select {
-	case shop := <-shopChan:
-		return &pb.SearchNearbyShopRes{
-			Shop: &pb.Shop{
-				Id:   shop.Id(),
-				Name: shop.Name,
-			},
-		}, nil
-	case err := <-errChan:
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Could not find the near shop: %v", err))
+	if long > 180 || long < -180 {
+		return nil, status.Error(codes.InvalidArgument, "Invalid longitude value")
 	}
+	if lat > 90 || lat < -90 {
+		return nil, status.Error(codes.InvalidArgument, "Invalid latitude value")
+	}
+
+	shop := <-s.db.Shop().FindNearByShop(long, lat)
+	return &pb.SearchNearbyShopRes{
+		Shop: &pb.Shop{
+			Id:   shop.Id(),
+			Name: shop.Name,
+		},
+	}, nil
 }
 
 func (s *SearchService) SearchByProduct(ctx context.Context, req *pb.SearchByProductReq) (*pb.SearchByProductRes, error) {
-	nameQuery := strings.ToLower(strings.TrimSpace(req.GetName()))
+	var err error
+	var shop *models.ShopModel
 
+	var shopIdObject primitive.ObjectID
 	if shopIdHex := req.GetShopId(); shopIdHex != "" {
-		shopIdObject, err := primitive.ObjectIDFromHex(shopIdHex)
+		shopIdObject, err = primitive.ObjectIDFromHex(shopIdHex)
+
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Could not convert shop hex id to ObjectId: %v", err))
+			return nil, status.Error(codes.InvalidArgument, "Invalid shop id")
 		}
-		shopChan, errChan := s.db.Shop().FindOne(bson.M{"_id": shopIdObject})
 
-		select {
-		case shop := <-shopChan:
-			productCatalogueId := shop.ProductCatalogueId
-			productCataloguesChan, errChan := s.db.ProductCatalogue().Find(bson.M{"_id": productCatalogueId}, bson.D{}, 0, 0)
+		shop = <-s.db.Shop().FindShopById(shopIdObject)
+	}
 
-			select {
-			case productCatalogues := <-productCataloguesChan:
-				productChan, errChan := findProduct(productCatalogues, req.GetProductId(), nameQuery)
-				select {
-				case product := <-productChan:
-					return &pb.SearchByProductRes{
-						Product: product,
-					}, nil
-				case err := <-errChan:
-					return nil, err
-				}
-			case err := <-errChan:
-				return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Could not find the product catalogue with id %s: %v", productCatalogueId.Hex(), err))
-			}
-		case err := <-errChan:
-			return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Could not find the shop with id %s: %v", shopIdHex, err))
+	var productCatalogues []models.ProductCatalogueModel
+	if shop != nil {
+		productCatalogues = <-s.db.ProductCatalogue().FindProductCatalogues(bson.M{"_id": shop.ID}, bson.D{}, 0, 0)
+	} else {
+		productCatalogues = <-s.db.ProductCatalogue().FindProductCatalogues(bson.M{}, bson.D{}, 0, 0)
+	}
+
+	var productIdObject primitive.ObjectID
+	if productIdHex := req.GetProductId(); productIdHex != "" {
+		productIdObject, err = primitive.ObjectIDFromHex(productIdHex)
+
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid product id")
 		}
 	}
-	productCataloguesChan, errChan := s.db.ProductCatalogue().Find(bson.M{}, bson.D{}, 0, 0)
-	select {
-	case productCatalogues := <-productCataloguesChan:
-		productChan, errChan := findProduct(productCatalogues, req.GetProductId(), nameQuery)
-		select {
-		case product := <-productChan:
-			return &pb.SearchByProductRes{
-				Product: product,
-			}, nil
-		case err := <-errChan:
-			return nil, err
-		}
-	case err := <-errChan:
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Could not find the product with Id %s: %v", req.GetProductId(), err))
-	}
-}
 
-func findProduct(productCatalogues []models.ProductCatalogueModel, productId, nameQuery string) (chan *pb.Product, chan error) {
-	product := make(chan *pb.Product)
-	err := make(chan error)
+	nameQuery := strings.ToLower(strings.TrimSpace(req.GetName()))
+	product := <-s.db.ProductCatalogue().FindProductFromProductCatalogues(productCatalogues, productIdObject, nameQuery)
 
-	go func() {
-		var result *pb.Product
-		results := make([]*pb.Product, 0)
-		for _, productCatalogue := range productCatalogues {
-			for _, product := range productCatalogue.Products {
-				tmp := pb.Product{
-					Id:          product.ID.Hex(),
-					Name:        product.Name,
-					Description: product.Description,
-					Price:       product.Price,
-					Weight:      product.Weight,
-				}
-
-				if product.ID.Hex() == productId {
-					result = &tmp
-				}
-
-				productName := strings.ToLower(strings.TrimSpace(product.Name))
-				if strings.Contains(productName, nameQuery) {
-					results = append(results, &tmp)
-				}
-			}
-		}
-		if result != nil {
-			product <- result
-		} else if len(results) > 0 {
-			product <- results[0]
-		} else {
-			err <- status.Error(codes.NotFound, fmt.Sprintf("Could not find the product with name: %s", nameQuery))
-		}
-	}()
-
-	return product, err
+	return &pb.SearchByProductRes{
+		Product: &pb.Product{
+			Id:          product.ID.Hex(),
+			Name:        product.Name,
+			Description: product.Description,
+			Price:       product.Price,
+			Weight:      product.Weight,
+		},
+	}, nil
 }
