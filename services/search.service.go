@@ -63,7 +63,7 @@ func (s *SearchService) SearchByProduct(ctx context.Context, req *pb.SearchByPro
 
 	var productCatalogues []models.ProductCatalogueModel
 	if shop != nil {
-		productCatalogues = <-s.db.ProductCatalogue().FindProductCatalogues(bson.M{"_id": shop.ID}, bson.D{}, 0, 0)
+		productCatalogues = <-s.db.ProductCatalogue().FindProductCatalogues(bson.M{"_id": shop.ProductCatalogueId}, bson.D{}, 0, 0)
 	} else {
 		productCatalogues = <-s.db.ProductCatalogue().FindProductCatalogues(bson.M{}, bson.D{}, 0, 0)
 	}

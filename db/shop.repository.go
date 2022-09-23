@@ -21,6 +21,34 @@ func NewShopRepo() *ShopRepository {
 	return &ShopRepository{repo}
 }
 
+func (s *ShopRepository) FindShops(shopId primitive.ObjectID, long, lat, maxDistance float64) chan []models.ShopModel {
+	c := make(chan []models.ShopModel)
+
+	go func() {
+		filters := bson.M{}
+		if !shopId.IsZero() {
+			filters["_id"] = shopId
+		}
+		geoFilters := bson.M{
+			"$nearSphere": bson.M{
+				"$geometry": bson.M{
+					"type": "Point", "coordinates": []float64{long, lat},
+				},
+				"$maxDistance": maxDistance,
+			},
+		}
+		filters["location"] = geoFilters
+		shopsChan, errChan := s.Find(filters, bson.D{}, 0, 0)
+		select {
+		case shops := <-shopsChan:
+			c <- shops
+		case err := <-errChan:
+			logger.Error("Error finding the shops", zap.Error(err))
+		}
+	}()
+	return c
+}
+
 func (s *ShopRepository) FindNearByShop(long, lat float64) chan *models.ShopModel {
 	shopChan := make(chan *models.ShopModel)
 	go func() {
